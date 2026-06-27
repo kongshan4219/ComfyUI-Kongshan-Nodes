@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kongshan-nodes"
-version = "0.1.1"
+version = "0.1.2"
 description = "Kongshan product-image workflow nodes for ComfyUI, including Gemini, CLI, SAM, GroundingDINO, file IO, and local image utilities."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -25,7 +25,7 @@ Documentation = "https://github.com/kongshan4219/ComfyUI-Kongshan-Nodes#readme"
 "Bug Tracker" = "https://github.com/kongshan4219/ComfyUI-Kongshan-Nodes/issues"
 
 [tool.comfy]
-PublisherId = "kongshan4219"
+PublisherId = "kongshan"
 DisplayName = "Kongshan Nodes"
 requires-comfyui = ">=0.3.0"
 includes = ["web"]
