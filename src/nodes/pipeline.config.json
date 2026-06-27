@@ -1,0 +1,52 @@
+{
+  "providers": {
+    "opencode": {
+      "base_url": "https://opencode.ai/zen/go/v1",
+      "default_api_key": "OPENCODE_API_KEY",
+      "api_keys": {
+        "OPENCODE_API_KEY": "env:OPENCODE_API_KEY"
+      },
+      "model_fetch": {
+        "method": "openai"
+      }
+    },
+    "openrouter": {
+      "base_url": "https://openrouter.ai/api/v1",
+      "default_api_key": "OPENROUTER_API_KEY",
+      "api_keys": {
+        "OPENROUTER_API_KEY": "env:OPENROUTER_API_KEY"
+      },
+      "model_fetch": {
+        "method": "openrouter"
+      }
+    },
+    "gemini": {
+      "base_url": "https://generativelanguage.googleapis.com",
+      "default_api_key": "Gemini_API_KEY_FREE",
+      "api_keys": {
+        "Gemini_API_KEY_FREE": "env:Gemini_API_KEY_FREE",
+        "Gemini_API_KEY": "env:Gemini_API_KEY"
+      },
+      "model_fetch": {
+        "method": "gemini"
+      }
+    }
+  },
+  "defaults": {
+    "vlm": {
+      "provider": "opencode",
+      "api_key": "default",
+      "model": "mimo-v2.5"
+    },
+    "embedding": {
+      "provider": "openrouter",
+      "api_key": "default",
+      "model": "nvidia/llama-nemotron-embed-vl-1b-v2"
+    },
+    "image_gen": {
+      "provider": "gemini",
+      "api_key": "default",
+      "model": "gemini-2.5-flash-image"
+    }
+  }
+}

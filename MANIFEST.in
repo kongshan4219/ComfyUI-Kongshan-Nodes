@@ -1,0 +1,9 @@
+include README.md
+include requirements.txt
+include .comfyignore
+
+recursive-include web *.js
+recursive-include src *.json *.txt
+
+recursive-exclude * __pycache__
+recursive-exclude * *.py[co]

@@ -1,0 +1,8 @@
+addict
+numpy
+Pillow
+requests
+scipy
+segment_anything
+timm
+yapf

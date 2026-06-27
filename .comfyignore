@@ -1,0 +1,14 @@
+.git/
+.github/
+.idea/
+.vscode/
+__pycache__/
+*.py[cod]
+.env
+tests/
+scratch/
+work/
+build/
+dist/
+*.egg-info/
+node.zip

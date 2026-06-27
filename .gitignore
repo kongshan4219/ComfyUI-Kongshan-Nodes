@@ -1,0 +1,12 @@
+__pycache__/
+*.py[cod]
+.env
+.venv/
+venv/
+build/
+dist/
+*.egg-info/
+.idea/
+.vscode/
+.ruff_cache/
+node.zip
