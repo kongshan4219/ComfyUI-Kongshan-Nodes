@@ -23,7 +23,7 @@ def _merge(modules: list[ModuleType]) -> tuple[dict[str, type], dict[str, str]]:
 
 def collect_nodes() -> tuple[dict[str, type], dict[str, str]]:
     """Load node modules from the flat top-level nodes package."""
-    nodes_package = importlib.import_module("nodes")
+    nodes_package = importlib.import_module("py")
     modules = [
         importlib.import_module(item.name)
         for item in sorted(

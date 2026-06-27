@@ -9,7 +9,7 @@ if str(SRC_DIR) not in sys.path:
     sys.path.insert(0, str(SRC_DIR))
 
 from api import gemini_models as _gemini_models  # Register HTTP routes.
-from nodes._registry import collect_nodes
+from py._registry import collect_nodes
 
 
 NODE_CLASS_MAPPINGS, NODE_DISPLAY_NAME_MAPPINGS = collect_nodes()
