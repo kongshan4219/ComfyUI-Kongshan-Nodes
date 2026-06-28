@@ -44,7 +44,7 @@ class KSCLIImageOutputFile:
         "最终找到并加载的图片绝对路径。",
     )
     FUNCTION = "load"
-    CATEGORY = "Kongshan/Local"
+    CATEGORY = "Kongshan/CLI"
 
     def load(
         self,

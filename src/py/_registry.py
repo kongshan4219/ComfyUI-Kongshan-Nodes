@@ -21,18 +21,21 @@ def _merge(modules: list[ModuleType]) -> tuple[dict[str, type], dict[str, str]]:
     return classes, display_names
 
 
-def collect_nodes() -> tuple[dict[str, type], dict[str, str]]:
-    """Load node modules from the flat top-level nodes package."""
-    nodes_package = importlib.import_module("py")
-    modules = [
+def _load_node_modules(package_name: str) -> list[ModuleType]:
+    package = importlib.import_module(package_name)
+    return [
         importlib.import_module(item.name)
         for item in sorted(
-            pkgutil.walk_packages(
-                nodes_package.__path__,
-                prefix=f"{nodes_package.__name__}.",
-            ),
+            pkgutil.iter_modules(package.__path__, prefix=f"{package.__name__}."),
             key=lambda item: item.name,
         )
-        if not item.name.rsplit(".", 1)[-1].startswith("_")
+        if not item.ispkg and not item.name.rsplit(".", 1)[-1].startswith("_")
     ]
+
+
+def collect_nodes() -> tuple[dict[str, type], dict[str, str]]:
+    """Load node modules from the api, cli, and local node packages."""
+    modules: list[ModuleType] = []
+    for package_name in ("py.api", "py.cli", "py.local"):
+        modules.extend(_load_node_modules(package_name))
     return _merge(modules)

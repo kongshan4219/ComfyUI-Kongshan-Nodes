@@ -29,10 +29,10 @@ This repository follows the current ComfyUI custom-node scaffold layout:
 ComfyUI-Kongshan-Nodes/
 ├── __init__.py                  # ComfyUI custom_nodes entrypoint
 ├── pyproject.toml               # Registry and Python package metadata
-├── src/nodes/                   # Flat directory containing all node modules and node loader
-├── src/api/                     # ComfyUI HTTP routes used by frontend widgets
-├── src/local_groundingdino/     # Bundled GroundingDINO support code
-└── src/sam_hq/                  # Bundled SAM-HQ support code
+├── src/py/                      # Python package loaded by the ComfyUI entrypoint
+│   ├── api/                     # API-backed nodes and their HTTP route helpers
+│   ├── cli/                     # CLI-backed nodes and their file IO helpers
+│   └── local/                   # Local nodes plus bundled SAM-HQ/GroundingDINO code
 └── web/                         # ComfyUI frontend extensions
 ```
 

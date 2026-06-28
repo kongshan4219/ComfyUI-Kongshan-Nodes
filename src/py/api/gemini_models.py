@@ -9,8 +9,8 @@ from typing import Any
 from aiohttp import web
 from server import PromptServer
 
-PACKAGE_ROOT = Path(__file__).resolve().parents[1]
-DEFAULT_CONFIG = PACKAGE_ROOT / "nodes" / "pipeline.config.json"
+PACKAGE_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_CONFIG = Path(__file__).resolve().parent / "pipeline.config.json"
 
 PROVIDER_FALLBACKS = {
     "gemini": {

@@ -16,6 +16,7 @@ dependencies = [
     "scipy",
     "segment_anything",
     "timm",
+    "transformers",
     "yapf",
 ]
 

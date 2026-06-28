@@ -65,7 +65,7 @@ class KSCLIImageInputFiles:
         "参考图路径；没有参考图时为空字符串。",
     )
     FUNCTION = "prepare"
-    CATEGORY = "Kongshan/Local"
+    CATEGORY = "Kongshan/CLI"
 
     @classmethod
     def IS_CHANGED(cls, **kwargs):

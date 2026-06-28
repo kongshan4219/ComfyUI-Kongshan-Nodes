@@ -13,7 +13,7 @@ import requests
 import torch
 from PIL import Image
 
-PACKAGE_ROOT = Path(__file__).resolve().parents[2]
+PACKAGE_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_CONFIG = Path(__file__).resolve().parent / "pipeline.config.json"
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 

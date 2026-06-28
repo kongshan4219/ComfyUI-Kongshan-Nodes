@@ -5,4 +5,5 @@ requests
 scipy
 segment_anything
 timm
+transformers
 yapf
