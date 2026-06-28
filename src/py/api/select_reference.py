@@ -3,7 +3,6 @@ from __future__ import annotations
 import json
 from pathlib import Path
 from ._gemini_product_utils import (
-    DEFAULT_CONFIG,
     IMAGE_EXTENSIONS,
     load_config,
     load_image,
@@ -24,7 +23,6 @@ class KSSelectReference:
                 "product_profile": ("STRING", {"forceInput": True, "tooltip": "商品分析 JSON。reference 模式会读取其中的颜色和风格标签辅助匹配。"}),
                 "mode": (["ai_design", "reference", "background"], {"tooltip": "参考选择模式：ai_design 不使用参考图；reference 从目录或输入图中选择风格参考；background 取目录第一张作为背景参考。"}),
                 "reference_directory": ("STRING", {"default": "", "tooltip": "参考图库目录。reference/background 模式未连接 reference_image 时会从这里读取 png/jpg/jpeg/webp 图片。"}),
-                "config_path": ("STRING", {"default": str(DEFAULT_CONFIG), "tooltip": "节点配置文件路径。用于读取 embedding 模型、供应商和密钥配置。"}),
                 "provider": (["default"], {"default": "default", "tooltip": "Embedding 供应商。default 使用配置文件 embedding.defaults.provider。"}),
                 "api_key": (["default"], {"default": "default", "tooltip": "Embedding API 密钥名称。default 使用配置文件默认密钥。"}),
                 "model": (["default"], {"default": "default", "tooltip": "Embedding 模型。不同模型会影响相似度匹配质量、速度和费用。"}),
@@ -46,7 +44,7 @@ class KSSelectReference:
     def VALIDATE_INPUTS(cls, **kwargs):
         return True
 
-    def select(self, product_image, product_profile, mode, reference_directory, config_path, provider, api_key, model, reference_image=None):
+    def select(self, product_image, product_profile, mode, reference_directory, provider, api_key, model, reference_image=None):
         if mode == "ai_design":
             return {"image": None, "path": ""}, "", 0.0
         if reference_image is not None:
@@ -61,7 +59,7 @@ class KSSelectReference:
             path = candidates[0]
             return {"image": load_image(path), "path": str(path)}, path.name, 1.0
 
-        config = load_config(config_path)
+        config = load_config()
         cache_path = directory / "reference_embeddings.json"
         cache = json.loads(cache_path.read_text(encoding="utf-8")) if cache_path.exists() else {}
         product_vec = embedding(config, provider, api_key, model, tensor_to_png(product_image))

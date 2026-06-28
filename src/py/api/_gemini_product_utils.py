@@ -18,10 +18,8 @@ DEFAULT_CONFIG = Path(__file__).resolve().parent / "pipeline.config.json"
 IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".webp"}
 
 
-def load_config(config_path: str) -> dict[str, Any]:
-    path = Path(config_path).expanduser() if config_path.strip() else DEFAULT_CONFIG
-    if not path.is_absolute():
-        path = PACKAGE_ROOT / path
+def load_config() -> dict[str, Any]:
+    path = DEFAULT_CONFIG
     if not path.exists():
         raise RuntimeError(f"Kongshan node config not found: {path}")
     return json.loads(path.read_text(encoding="utf-8"))

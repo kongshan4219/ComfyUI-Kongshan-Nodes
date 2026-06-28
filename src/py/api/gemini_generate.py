@@ -25,7 +25,6 @@ class KSGeminiGenerate:
             "final_prompt": ("STRING", {"forceInput": True, "tooltip": "最终生图提示词，通常来自“生成设计策略”节点。提示越明确，输出越可控。"}),
             "reference": ("KS_REFERENCE", {"tooltip": "可选参考图对象。包含图像时会一起提交给 Gemini；为空时仅依据商品图和提示词生成。"}),
             "output_prefix": ("STRING", {"default": "image_pipeline/result", "tooltip": "输出文件名前缀，相对于 ComfyUI output 目录。节点会自动追加时间戳和 .png，路径必须留在 output 内。"}),
-            "config_path": ("STRING", {"default": str(load_config.__globals__['DEFAULT_CONFIG']), "tooltip": "节点配置文件路径。用于读取 image_gen 供应商、模型和密钥配置。"}),
             "provider": (["default"], {"default": "default", "tooltip": "图像生成供应商。default 使用配置文件 image_gen.defaults.provider；gemini 走 generateContent，多数其他供应商走 OpenAI 兼容 images/generations。"}),
             "api_key": (["default"], {"default": "default", "tooltip": "图像生成 API 密钥名称。default 使用配置文件默认密钥；不同密钥可能对应免费/付费额度。"}),
             "model": (["default"], {"default": "default", "tooltip": "图像生成模型。不同模型会影响画质、提示词遵循度、速度、尺寸能力和费用。"}),
@@ -57,12 +56,11 @@ class KSGeminiGenerate:
         final_prompt,
         reference,
         output_prefix,
-        config_path,
         provider,
         api_key,
         model,
     ):
-        config = load_config(config_path)
+        config = load_config()
         resolved_model, base_url, actual_api_key, provider_name, provider_data = resolve_provider(
             config, provider, api_key, model, "image_gen"
         )

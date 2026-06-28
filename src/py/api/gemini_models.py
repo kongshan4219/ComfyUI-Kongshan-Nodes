@@ -38,10 +38,8 @@ def _route_post(path: str):
     return server.routes.post(path)
 
 
-def load_config(config_path: str) -> dict[str, Any]:
-    path = Path(config_path).expanduser() if config_path.strip() else DEFAULT_CONFIG
-    if not path.is_absolute():
-        path = PACKAGE_ROOT / path
+def load_config() -> dict[str, Any]:
+    path = DEFAULT_CONFIG
     if not path.exists():
         raise RuntimeError(f"Kongshan node config not found: {path}")
     return json.loads(path.read_text(encoding="utf-8"))
@@ -162,9 +160,7 @@ def fetch_models(provider_name: str, provider_data: dict[str, Any], api_key: str
 @_route_post("/ks-nodes/config-info")
 async def ks_config_info(request):
     try:
-        payload = await request.json()
-        config_path = str(payload.get("config_path", ""))
-        config = load_config(config_path)
+        config = load_config()
     except Exception as e:
         return web.json_response({"error": f"Failed to load config: {str(e)}"}, status=400)
 
@@ -195,12 +191,11 @@ async def ks_config_info(request):
 async def ks_models(request):
     try:
         payload = await request.json()
-        config_path = str(payload.get("config_path", ""))
         provider_name = str(payload.get("provider", ""))
         api_key_name = str(payload.get("api_key", ""))
         category = str(payload.get("category", "vlm"))
 
-        config = load_config(config_path)
+        config = load_config()
     except Exception as e:
         return web.json_response({"error": f"Failed to load config: {str(e)}"}, status=400)
 
@@ -236,7 +231,7 @@ async def ks_gemini_models(request):
     try:
         payload = await request.json()
         key_name = str(payload.get("gemini_api_key", ""))
-        config = load_config("")
+        config = load_config()
         gemini_provider = config.get("providers", {}).get("gemini", {})
         api_key = resolve_key_value(gemini_provider, key_name)
         if not api_key:

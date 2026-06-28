@@ -18,12 +18,11 @@ app.registerExtension({
             const result = originalCreated?.apply(this, arguments);
             const node = this;
 
-            const configPathWidget = node.widgets?.find((w) => w.name === "config_path");
             const providerWidget = node.widgets?.find((w) => w.name === "provider");
             const apiKeyWidget = node.widgets?.find((w) => w.name === "api_key");
             const modelWidget = node.widgets?.find((w) => w.name === "model");
 
-            if (!configPathWidget || !providerWidget || !apiKeyWidget || !modelWidget) {
+            if (!providerWidget || !apiKeyWidget || !modelWidget) {
                 return result;
             }
 
@@ -69,7 +68,6 @@ app.registerExtension({
             };
 
             const refreshModels = async (showError = false, keepValue = false) => {
-                const configPath = configPathWidget.value;
                 const selectedProvider = providerWidget.value;
                 const selectedApiKey = apiKeyWidget.value;
                 const currentRequest = ++node.modelRequestId;
@@ -79,7 +77,6 @@ app.registerExtension({
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({
-                            config_path: configPath,
                             provider: selectedProvider,
                             api_key: selectedApiKey,
                             category: category
@@ -126,12 +123,11 @@ app.registerExtension({
             };
 
             const refreshConfigAndProviders = async (showError = false, keepValue = false) => {
-                const configPath = configPathWidget.value;
                 try {
                     const response = await fetch("/ks-nodes/config-info", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ config_path: configPath }),
+                        body: JSON.stringify({}),
                     });
                     const payload = await response.json();
                     if (!response.ok) throw new Error(payload.error || "Failed to load config info");
@@ -149,14 +145,6 @@ app.registerExtension({
                     console.warn("[Kongshan Nodes] Config info refresh failed:", error);
                     if (showError) app.ui.dialog.show(error.message || String(error));
                 }
-            };
-
-            // Setup callbacks
-            const originalConfigCallback = configPathWidget.callback;
-            configPathWidget.callback = function (value) {
-                const callbackResult = originalConfigCallback?.apply(this, arguments);
-                refreshConfigAndProviders(true, false);
-                return callbackResult;
             };
 
             const originalProviderCallback = providerWidget.callback;
