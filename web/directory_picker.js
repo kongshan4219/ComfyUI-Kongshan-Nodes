@@ -28,15 +28,11 @@ const addButton = (node, label, callback) => {
     return button;
 };
 
-const IMAGE_FILE_PATTERN = /\.(png|jpe?g|webp|bmp|tiff?)$/i;
-
-const pickFiles = ({ multiple = false, directory = false } = {}) =>
+const pickFiles = () =>
     new Promise((resolve) => {
         const input = document.createElement("input");
         input.type = "file";
         input.accept = "image/*";
-        input.multiple = multiple || directory;
-        if (directory) input.webkitdirectory = true;
         input.style.display = "none";
         input.addEventListener(
             "change",
@@ -182,28 +178,20 @@ app.registerExtension({
                     if (!directoryWidget) return;
 
                     try {
-                        const files = (await pickFiles({ directory: true })).filter((file) =>
-                            IMAGE_FILE_PATTERN.test(file.name)
-                        );
-                        if (!files.length) return;
-
-                        const firstPath = files[0].webkitRelativePath || files[0].name;
-                        const rootName = firstPath.split("/")[0] || "directory";
-                        const safeRoot = rootName.replace(/[^\w.-]+/g, "_");
-                        const subfolder = `kongshan_uploads/${Date.now()}_${safeRoot}`;
-                        const uploads = [];
-                        for (const file of files) {
-                            uploads.push(await uploadImage(file, subfolder));
+                        const response = await fetch("/ks-product-split/select-directory", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ initial_directory: directoryWidget.value || "" }),
+                        });
+                        const payload = await response.json();
+                        if (!response.ok) {
+                            throw new Error(payload.error || "目录选择器启动失败");
                         }
+                        if (payload.cancelled || !payload.path) return;
 
-                        const directoryPath = `${subfolder} [input]`;
-                        directoryWidget.value = directoryPath;
-                        directoryWidget.callback?.(directoryPath);
+                        directoryWidget.value = payload.path;
+                        directoryWidget.callback?.(payload.path);
                         await node.refreshImageChoices?.(true, false);
-                        if (indexWidget && uploads[0]?.name) {
-                            indexWidget.value = uploads[0].name;
-                            indexWidget.callback?.(uploads[0].name);
-                        }
                         node.setDirtyCanvas(true, true);
                     } catch (error) {
                         app.ui.dialog.show(error.message || "目录选择器启动失败");
