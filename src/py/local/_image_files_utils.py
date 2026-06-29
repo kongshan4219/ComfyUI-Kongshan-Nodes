@@ -61,19 +61,33 @@ def _choose_windows_directory(initial_directory: str) -> str:
         initial = Path.home()
     escaped = str(initial).replace("'", "''")
     script = rf"""
+$culture = [System.Globalization.CultureInfo]::InstalledUICulture
+try {{
+    $language = (Get-WinUserLanguageList | Select-Object -First 1).LanguageTag
+    if ($language) {{
+        $culture = [System.Globalization.CultureInfo]::GetCultureInfo($language)
+    }}
+}} catch {{}}
+[System.Threading.Thread]::CurrentThread.CurrentCulture = $culture
+[System.Threading.Thread]::CurrentThread.CurrentUICulture = $culture
+[System.Globalization.CultureInfo]::DefaultThreadCurrentCulture = $culture
+[System.Globalization.CultureInfo]::DefaultThreadCurrentUICulture = $culture
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 $owner = New-Object System.Windows.Forms.Form
-$owner.Text = 'Kongshan Nodes'
+$owner.Text = '空山节点'
 $owner.Size = New-Object System.Drawing.Size(1, 1)
 $owner.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
 $owner.ShowInTaskbar = $false
 $owner.TopMost = $true
 $owner.Opacity = 0
 $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
-$dialog.Description = '选择商品白底图输出目录'
+$dialog.Description = '选择输入目录'
 $dialog.ShowNewFolderButton = $true
 $dialog.SelectedPath = '{escaped}'
+if ($dialog.PSObject.Properties.Name -contains 'UseDescriptionForTitle') {{
+    $dialog.UseDescriptionForTitle = $true
+}}
 try {{
     $owner.Show()
     $owner.Activate()
@@ -107,10 +121,21 @@ def _choose_windows_image_file(initial_path: str) -> str:
         initial_directory = Path.home()
     escaped = str(initial_directory).replace("'", "''")
     script = rf"""
+$culture = [System.Globalization.CultureInfo]::InstalledUICulture
+try {{
+    $language = (Get-WinUserLanguageList | Select-Object -First 1).LanguageTag
+    if ($language) {{
+        $culture = [System.Globalization.CultureInfo]::GetCultureInfo($language)
+    }}
+}} catch {{}}
+[System.Threading.Thread]::CurrentThread.CurrentCulture = $culture
+[System.Threading.Thread]::CurrentThread.CurrentUICulture = $culture
+[System.Globalization.CultureInfo]::DefaultThreadCurrentCulture = $culture
+[System.Globalization.CultureInfo]::DefaultThreadCurrentUICulture = $culture
 Add-Type -AssemblyName System.Windows.Forms
 Add-Type -AssemblyName System.Drawing
 $owner = New-Object System.Windows.Forms.Form
-$owner.Text = 'Kongshan Nodes'
+$owner.Text = '空山节点'
 $owner.Size = New-Object System.Drawing.Size(1, 1)
 $owner.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
 $owner.ShowInTaskbar = $false
