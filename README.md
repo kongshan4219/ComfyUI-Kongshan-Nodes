@@ -83,6 +83,63 @@ GEMINI_API_KEY=
 
 Never commit `.env`.
 
+## Local File Pickers
+
+The local image and directory nodes include UI buttons for selecting real
+filesystem paths:
+
+- `从原始路径加载图片` opens the browser file picker, uploads the selected image
+  to ComfyUI's input directory, and loads it with a ComfyUI-style `[input]`
+  path.
+- `目录图片选择加载器` opens the browser directory picker, uploads the selected
+  directory images to a ComfyUI input subfolder, and refreshes the image list
+  from that uploaded folder.
+- `保存图片到自定义目录` opens a system directory picker for the output folder.
+
+Image loading follows ComfyUI's built-in `LoadImage` behavior for EXIF
+orientation, animated image frames, alpha masks, output dtype, and output
+device placement, while still returning the original filesystem path for
+downstream nodes.
+
+The image and input-directory pickers follow ComfyUI's built-in `LoadImage`
+pattern: the browser opens the native picker and uploads selected files to the
+ComfyUI input directory. This avoids backend GUI dependencies such as
+`tkinter`, which may be missing from embedded Python runtimes.
+
+The output-directory picker still asks the backend to choose a real filesystem
+folder because saving outside ComfyUI's input directory requires a full local
+path. On Linux, that backend picker uses `zenity`; on macOS, it uses the native
+`osascript` folder chooser.
+
+Output-directory picker dependency checks and install commands:
+
+Debian/Ubuntu Linux:
+
+```bash
+sudo apt update
+sudo apt install -y zenity
+```
+
+Fedora Linux:
+
+```bash
+sudo dnf install -y zenity
+```
+
+Arch Linux:
+
+```bash
+sudo pacman -S zenity
+```
+
+macOS:
+
+```bash
+osascript -e 'POSIX path of (choose folder with prompt "Select folder")'
+```
+
+No extra package is usually required on macOS.
+
 ## Included Node Groups
 
 - `Kongshan/API`: product analysis, reference selection, design strategy, and

@@ -2,12 +2,10 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-import numpy as np
-import torch
-from PIL import Image, ImageOps
 
 # Import to register API routes for selection
 from . import _image_files_utils
+from ._load_image_utils import image_file_hash, load_image_like_comfy
 
 
 def natural_sort_key(path: Path) -> list:
@@ -60,39 +58,78 @@ class KSDirectoryImageSelector:
     CATEGORY = "Kongshan/Local"
 
     @classmethod
-    def VALIDATE_INPUTS(cls, **kwargs):
+    def IS_CHANGED(cls, directory_path, index, pattern):
+        selected_file, _ = cls._resolve_selection(directory_path, index, pattern)
+        if selected_file is None:
+            return ""
+        return image_file_hash(selected_file)
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, directory_path, index, pattern):
+        selected_file, error = cls._resolve_selection(directory_path, index, pattern)
+        if error:
+            return error
+        if selected_file is None or not selected_file.is_file():
+            return f"Invalid image file: {index}"
         return True
 
-    def load_image_from_dir(self, directory_path, index, pattern):
-        dir_path = Path(directory_path.strip()).expanduser()
-        if not dir_path.is_dir():
-            raise RuntimeError(f"Directory not found: {dir_path}")
+    @staticmethod
+    def _resolve_directory(directory_path):
+        path = Path(str(directory_path).strip()).expanduser()
+        if path.is_dir():
+            return path
 
-        # Parse pattern
+        try:
+            import folder_paths
+
+            resolved = Path(folder_paths.get_annotated_filepath(str(directory_path)))
+            if resolved.is_dir():
+                return resolved
+        except Exception:
+            pass
+
+        return path
+
+    @staticmethod
+    def _matching_files(directory_path, pattern):
+        dir_path = KSDirectoryImageSelector._resolve_directory(directory_path)
+        if not dir_path.is_dir():
+            return None, [], f"Directory not found: {dir_path}"
+
+        file_paths = [p for p in dir_path.iterdir() if p.is_file()]
         extensions = []
-        if pattern.strip():
-            parts = re.split(r"[,;]+", pattern)
+        if str(pattern).strip():
+            parts = re.split(r"[,;]+", str(pattern))
             for p in parts:
                 p_clean = p.strip().lower()
                 if p_clean:
                     p_clean = p_clean.lstrip("*").lstrip(".")
                     if p_clean:
                         extensions.append("." + p_clean)
-        if not extensions:
-            extensions = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"]
+        if extensions:
+            files = [p for p in file_paths if p.suffix.lower() in extensions]
+        else:
+            try:
+                import folder_paths
 
-        # List files sorted by natural sort order by name
-        files = sorted(
-            [
-                p for p in dir_path.iterdir()
-                if p.is_file() and p.suffix.lower() in extensions
-            ],
-            key=natural_sort_key
-        )
+                image_names = set(folder_paths.filter_files_content_types([p.name for p in file_paths], ["image"]))
+                files = [p for p in file_paths if p.name in image_names]
+            except Exception:
+                fallback_extensions = [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff"]
+                files = [p for p in file_paths if p.suffix.lower() in fallback_extensions]
+
+        files = sorted(files, key=natural_sort_key)
+        return dir_path, files, ""
+
+    @classmethod
+    def _resolve_selection(cls, directory_path, index, pattern):
+        dir_path, files, error = cls._matching_files(directory_path, pattern)
+        if error:
+            return None, error
 
         total = len(files)
         if total == 0:
-            raise RuntimeError(f"No matching images found in directory: {dir_path} with extensions {extensions}")
+            return None, f"No matching images found in directory: {dir_path}"
 
         index_text = str(index).strip()
         if not index_text:
@@ -105,26 +142,23 @@ class KSDirectoryImageSelector:
             )
         if selected_file is None:
             available = ", ".join(path.name for path in files[:20])
-            raise RuntimeError(
+            return None, (
                 f"Image name not found in directory: {index_text}. "
                 f"Available examples: {available}"
             )
 
-        image = Image.open(selected_file)
-        image = ImageOps.exif_transpose(image)
-        if image.mode == "I":
-            image = image.point(lambda value: value * (1 / 255))
+        return selected_file, ""
 
-        if "A" in image.getbands():
-            alpha = np.asarray(image.getchannel("A")).astype(np.float32) / 255.0
-            mask = torch.from_numpy(1.0 - alpha)[None,]
-        else:
-            mask = torch.zeros((1, image.height, image.width), dtype=torch.float32)
+    def load_image_from_dir(self, directory_path, index, pattern):
+        selected_file, error = self._resolve_selection(directory_path, index, pattern)
+        if error:
+            raise RuntimeError(error)
+        _, files, error = self._matching_files(directory_path, pattern)
+        if error:
+            raise RuntimeError(error)
 
-        image = image.convert("RGB")
-        image_array = np.asarray(image).astype(np.float32) / 255.0
-        image_tensor = torch.from_numpy(image_array)[None,]
-
+        image_tensor, mask = load_image_like_comfy(selected_file)
+        total = len(files)
         return (image_tensor, mask, str(selected_file.resolve()), selected_file.name, total)
 
 

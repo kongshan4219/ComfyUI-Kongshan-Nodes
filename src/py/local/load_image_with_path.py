@@ -1,12 +1,10 @@
 from __future__ import annotations
 
 from pathlib import Path
-import numpy as np
-import torch
-from PIL import Image, ImageOps
 
 # Import to register API routes for selection
 from . import _image_files_utils
+from ._load_image_utils import image_file_hash, load_image_like_comfy, resolve_image_path
 
 
 class KSLoadImageWithPath:
@@ -37,25 +35,26 @@ class KSLoadImageWithPath:
     FUNCTION = "load_image_with_path"
     CATEGORY = "Kongshan/Local"
 
+    @classmethod
+    def IS_CHANGED(cls, image_path):
+        source = resolve_image_path(image_path)
+        if not source.is_file():
+            return ""
+        return image_file_hash(source)
+
+    @classmethod
+    def VALIDATE_INPUTS(cls, image_path):
+        source = resolve_image_path(image_path)
+        if not source.is_file():
+            return f"Invalid image file: {image_path}"
+        return True
+
     def load_image_with_path(self, image_path):
-        source = Path(image_path.strip()).expanduser()
+        source = resolve_image_path(image_path)
         if not source.is_file():
             raise RuntimeError(f"Source image not found: {source}")
 
-        image = Image.open(source)
-        image = ImageOps.exif_transpose(image)
-        if image.mode == "I":
-            image = image.point(lambda value: value * (1 / 255))
-
-        if "A" in image.getbands():
-            alpha = np.asarray(image.getchannel("A")).astype(np.float32) / 255.0
-            mask = torch.from_numpy(1.0 - alpha)[None,]
-        else:
-            mask = torch.zeros((1, image.height, image.width), dtype=torch.float32)
-
-        image = image.convert("RGB")
-        image_array = np.asarray(image).astype(np.float32) / 255.0
-        image_tensor = torch.from_numpy(image_array)[None,]
+        image_tensor, mask = load_image_like_comfy(source)
         return (image_tensor, mask, str(source.resolve()))
 
 

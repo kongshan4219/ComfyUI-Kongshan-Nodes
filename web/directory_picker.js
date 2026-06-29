@@ -28,6 +28,49 @@ const addButton = (node, label, callback) => {
     return button;
 };
 
+const IMAGE_FILE_PATTERN = /\.(png|jpe?g|webp|bmp|tiff?)$/i;
+
+const pickFiles = ({ multiple = false, directory = false } = {}) =>
+    new Promise((resolve) => {
+        const input = document.createElement("input");
+        input.type = "file";
+        input.accept = "image/*";
+        input.multiple = multiple || directory;
+        if (directory) input.webkitdirectory = true;
+        input.style.display = "none";
+        input.addEventListener(
+            "change",
+            () => {
+                const files = Array.from(input.files || []);
+                input.remove();
+                resolve(files);
+            },
+            { once: true }
+        );
+        document.body.append(input);
+        input.click();
+    });
+
+const uploadImage = async (file, subfolder = "") => {
+    const body = new FormData();
+    body.append("image", file, file.name);
+    body.append("type", "input");
+    if (subfolder) body.append("subfolder", subfolder);
+
+    const response = await fetch("/upload/image", {
+        method: "POST",
+        body,
+    });
+    const payload = await response.json();
+    if (!response.ok) throw new Error(payload.error || "图片上传失败");
+    return payload;
+};
+
+const annotatedInputPath = ({ name, subfolder }) => {
+    const parts = [subfolder, name].filter(Boolean);
+    return `${parts.join("/")} [input]`;
+};
+
 app.registerExtension({
     name: "Kongshan.ProductSplit.DirectoryPicker",
     async beforeRegisterNodeDef(nodeType, nodeData) {
@@ -74,20 +117,17 @@ app.registerExtension({
                     );
                     if (!imagePathWidget) return;
 
-                    const response = await fetch("/ks-product-split/select-image-file", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ initial_path: imagePathWidget.value || "" }),
-                    });
-                    const payload = await response.json();
-                    if (!response.ok) {
-                        app.ui.dialog.show(payload.error || "图片选择器启动失败");
-                        return;
-                    }
-                    if (!payload.cancelled && payload.path) {
-                        imagePathWidget.value = payload.path;
-                        imagePathWidget.callback?.(payload.path);
+                    try {
+                        const files = await pickFiles();
+                        const file = files[0];
+                        if (!file) return;
+                        const payload = await uploadImage(file, "kongshan_uploads");
+                        const path = annotatedInputPath(payload);
+                        imagePathWidget.value = path;
+                        imagePathWidget.callback?.(path);
                         this.setDirtyCanvas(true, true);
+                    } catch (error) {
+                        app.ui.dialog.show(error.message || "图片选择器启动失败");
                     }
                 });
                 return result;
@@ -141,21 +181,32 @@ app.registerExtension({
                 addButton(this, "选择输入目录", async () => {
                     if (!directoryWidget) return;
 
-                    const response = await fetch("/ks-product-split/select-directory", {
-                        method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ initial_directory: directoryWidget.value || "" }),
-                    });
-                    const payload = await response.json();
-                    if (!response.ok) {
-                        app.ui.dialog.show(payload.error || "目录选择器启动失败");
-                        return;
-                    }
-                    if (!payload.cancelled && payload.path) {
-                        directoryWidget.value = payload.path;
-                        directoryWidget.callback?.(payload.path);
+                    try {
+                        const files = (await pickFiles({ directory: true })).filter((file) =>
+                            IMAGE_FILE_PATTERN.test(file.name)
+                        );
+                        if (!files.length) return;
+
+                        const firstPath = files[0].webkitRelativePath || files[0].name;
+                        const rootName = firstPath.split("/")[0] || "directory";
+                        const safeRoot = rootName.replace(/[^\w.-]+/g, "_");
+                        const subfolder = `kongshan_uploads/${Date.now()}_${safeRoot}`;
+                        const uploads = [];
+                        for (const file of files) {
+                            uploads.push(await uploadImage(file, subfolder));
+                        }
+
+                        const directoryPath = `${subfolder} [input]`;
+                        directoryWidget.value = directoryPath;
+                        directoryWidget.callback?.(directoryPath);
                         await node.refreshImageChoices?.(true, false);
+                        if (indexWidget && uploads[0]?.name) {
+                            indexWidget.value = uploads[0].name;
+                            indexWidget.callback?.(uploads[0].name);
+                        }
                         node.setDirtyCanvas(true, true);
+                    } catch (error) {
+                        app.ui.dialog.show(error.message || "目录选择器启动失败");
                     }
                 });
 
