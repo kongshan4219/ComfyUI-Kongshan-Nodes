@@ -1,9 +1,38 @@
 import { app } from "/scripts/app.js";
 
+const NODE_ALIASES = {
+    KSDirectorySaveImages: ["KSDirectorySaveImages", "目录保存图片"],
+    KSLoadImageWithPath: ["KSLoadImageWithPath", "从原始路径加载图片"],
+    KSDirectoryImageSelector: ["KSDirectoryImageSelector", "目录图片选择加载器"],
+};
+
+const resolveNodeName = (nodeData) => {
+    const names = [
+        nodeData.name,
+        nodeData.display_name,
+        nodeData.displayName,
+        nodeData.title,
+    ].filter(Boolean);
+
+    for (const [nodeName, aliases] of Object.entries(NODE_ALIASES)) {
+        if (aliases.some((alias) => names.includes(alias))) {
+            return nodeName;
+        }
+    }
+    return "";
+};
+
+const addButton = (node, label, callback) => {
+    const button = node.addWidget("button", label, "", callback);
+    button.serialize = false;
+    return button;
+};
+
 app.registerExtension({
     name: "Kongshan.ProductSplit.DirectoryPicker",
     async beforeRegisterNodeDef(nodeType, nodeData) {
-        if (!["KSDirectorySaveImages", "KSLoadImageWithPath", "KSDirectoryImageSelector"].includes(nodeData.name)) return;
+        const nodeName = resolveNodeName(nodeData);
+        if (!nodeName) return;
 
         const updateWidgetOptions = (node, widget, options, keepValue = false) => {
             if (!widget) return;
@@ -38,8 +67,8 @@ app.registerExtension({
         const originalCreated = nodeType.prototype.onNodeCreated;
         nodeType.prototype.onNodeCreated = function () {
             const result = originalCreated?.apply(this, arguments);
-            if (nodeData.name === "KSLoadImageWithPath") {
-                this.addWidget("button", "选择图片文件", null, async () => {
+            if (nodeName === "KSLoadImageWithPath") {
+                addButton(this, "选择图片文件", async () => {
                     const imagePathWidget = this.widgets?.find(
                         (widget) => widget.name === "image_path"
                     );
@@ -64,7 +93,7 @@ app.registerExtension({
                 return result;
             }
 
-            if (nodeData.name === "KSDirectoryImageSelector") {
+            if (nodeName === "KSDirectoryImageSelector") {
                 const node = this;
                 const directoryWidget = node.widgets?.find((widget) => widget.name === "directory_path");
                 const indexWidget = node.widgets?.find((widget) => widget.name === "index");
@@ -109,7 +138,7 @@ app.registerExtension({
                     };
                 }
 
-                this.addWidget("button", "选择输入目录", null, async () => {
+                addButton(this, "选择输入目录", async () => {
                     if (!directoryWidget) return;
 
                     const response = await fetch("/ks-product-split/select-directory", {
@@ -130,7 +159,7 @@ app.registerExtension({
                     }
                 });
 
-                this.addWidget("button", "刷新图片列表", null, () => {
+                addButton(this, "刷新图片列表", () => {
                     node.refreshImageChoices?.(true, false);
                 });
 
@@ -138,7 +167,7 @@ app.registerExtension({
                 return result;
             }
 
-            this.addWidget("button", "选择输出目录", null, async () => {
+            addButton(this, "选择输出目录", async () => {
                 const directoryWidget = this.widgets?.find(
                     (widget) => widget.name === "output_directory"
                 );
@@ -163,7 +192,7 @@ app.registerExtension({
             return result;
         };
 
-        if (nodeData.name === "KSDirectoryImageSelector") {
+        if (nodeName === "KSDirectoryImageSelector") {
             const originalConfigure = nodeType.prototype.onConfigure;
             nodeType.prototype.onConfigure = function () {
                 const result = originalConfigure?.apply(this, arguments);
