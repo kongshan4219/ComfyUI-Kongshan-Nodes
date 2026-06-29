@@ -62,13 +62,29 @@ def _choose_windows_directory(initial_directory: str) -> str:
     escaped = str(initial).replace("'", "''")
     script = rf"""
 Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+$owner = New-Object System.Windows.Forms.Form
+$owner.Text = 'Kongshan Nodes'
+$owner.Size = New-Object System.Drawing.Size(1, 1)
+$owner.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
+$owner.ShowInTaskbar = $false
+$owner.TopMost = $true
+$owner.Opacity = 0
 $dialog = New-Object System.Windows.Forms.FolderBrowserDialog
 $dialog.Description = '选择商品白底图输出目录'
 $dialog.ShowNewFolderButton = $true
 $dialog.SelectedPath = '{escaped}'
-if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {{
-    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-    Write-Output $dialog.SelectedPath
+try {{
+    $owner.Show()
+    $owner.Activate()
+    if ($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) {{
+        [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+        Write-Output $dialog.SelectedPath
+    }}
+}} finally {{
+    $dialog.Dispose()
+    $owner.Close()
+    $owner.Dispose()
 }}
 """
     result = subprocess.run(
@@ -92,14 +108,30 @@ def _choose_windows_image_file(initial_path: str) -> str:
     escaped = str(initial_directory).replace("'", "''")
     script = rf"""
 Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName System.Drawing
+$owner = New-Object System.Windows.Forms.Form
+$owner.Text = 'Kongshan Nodes'
+$owner.Size = New-Object System.Drawing.Size(1, 1)
+$owner.StartPosition = [System.Windows.Forms.FormStartPosition]::CenterScreen
+$owner.ShowInTaskbar = $false
+$owner.TopMost = $true
+$owner.Opacity = 0
 $dialog = New-Object System.Windows.Forms.OpenFileDialog
 $dialog.Title = '选择输入图片'
 $dialog.InitialDirectory = '{escaped}'
 $dialog.Filter = '图片文件|*.png;*.jpg;*.jpeg;*.webp;*.bmp;*.tif;*.tiff|所有文件|*.*'
 $dialog.Multiselect = $false
-if ($dialog.ShowDialog() -eq [System.Windows.Forms.DialogResult]::OK) {{
-    [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
-    Write-Output $dialog.FileName
+try {{
+    $owner.Show()
+    $owner.Activate()
+    if ($dialog.ShowDialog($owner) -eq [System.Windows.Forms.DialogResult]::OK) {{
+        [Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+        Write-Output $dialog.FileName
+    }}
+}} finally {{
+    $dialog.Dispose()
+    $owner.Close()
+    $owner.Dispose()
 }}
 """
     result = subprocess.run(
