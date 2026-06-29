@@ -72,10 +72,13 @@ class KSDirectorySaveImages:
         saved_paths = []
         for offset, tensor in enumerate(images):
             array = np.clip(tensor.detach().cpu().numpy() * 255.0, 0, 255).astype(np.uint8)
-            image = Image.fromarray(array, mode="RGB")
+            if array.ndim != 3 or array.shape[2] not in (3, 4):
+                raise RuntimeError(f"Unsupported image tensor shape for saving: {array.shape}")
+            image_mode = "RGBA" if array.shape[2] == 4 else "RGB"
+            image = Image.fromarray(array, mode=image_mode)
             path = target / f"{prefix}_{next_number + offset:05d}.{extension}"
             if extension == "jpg":
-                image.save(path, format="JPEG", quality=95, subsampling=0)
+                image.convert("RGB").save(path, format="JPEG", quality=95, subsampling=0)
             elif extension == "webp":
                 image.save(path, format="WEBP", quality=95, method=6)
             else:
