@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import asyncio
-import re
 import subprocess
 from pathlib import Path
 from aiohttp import web
@@ -16,55 +15,11 @@ import sys
 import shutil
 
 
-IMAGE_EXTENSIONS = (".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tif", ".tiff")
-
-
 def _route_post(path: str):
     server = getattr(PromptServer, "instance", None)
     if server is None:
         return lambda handler: handler
     return server.routes.post(path)
-
-
-def _natural_sort_key(path: Path) -> list:
-    return [int(text) if text.isdigit() else text.lower() for text in re.split(r"(\d+)", path.name)]
-
-
-def _list_image_names(directory_path: str, pattern: str) -> list[str]:
-    directory = Path(directory_path).expanduser()
-    if not directory.is_dir():
-        try:
-            import folder_paths
-
-            directory = Path(folder_paths.get_annotated_filepath(directory_path))
-        except Exception:
-            pass
-    if not directory.is_dir():
-        return []
-
-    file_paths = [path for path in directory.iterdir() if path.is_file()]
-    extensions: list[str] = []
-    if pattern.strip():
-        parts = re.split(r"[,;]+", pattern)
-        for part in parts:
-            cleaned = part.strip().lower().lstrip("*").lstrip(".")
-            if cleaned:
-                extensions.append("." + cleaned)
-    if extensions:
-        image_paths = [path for path in file_paths if path.suffix.lower() in extensions]
-    else:
-        try:
-            import folder_paths
-
-            image_names = set(folder_paths.filter_files_content_types([path.name for path in file_paths], ["image"]))
-            image_paths = [path for path in file_paths if path.name in image_names]
-        except Exception:
-            image_paths = [path for path in file_paths if path.suffix.lower() in IMAGE_EXTENSIONS]
-
-    return [
-        path.name
-        for path in sorted(image_paths, key=_natural_sort_key)
-    ]
 
 
 def _choose_windows_directory(initial_directory: str) -> str:
@@ -274,15 +229,4 @@ async def ks_select_product_image_file(request):
     except Exception as error:
         return web.json_response({"error": str(error)}, status=500)
 
-
-@_route_post("/ks-product-split/list-images")
-async def ks_list_product_images(request):
-    payload = await request.json()
-    directory_path = str(payload.get("directory_path", ""))
-    pattern = str(payload.get("pattern", ""))
-    try:
-        images = await asyncio.to_thread(_list_image_names, directory_path, pattern)
-        return web.json_response({"images": images})
-    except Exception as error:
-        return web.json_response({"error": str(error)}, status=500)
 

@@ -4,7 +4,7 @@ Kongshan Nodes is a ComfyUI custom-node package extracted from
 `kongshan_comfyui_workspace`. It provides nodes for product-image workflows,
 including Gemini/OpenRouter generation, local file IO, CLI execution, SAM,
 SAM-HQ, GroundingDINO, mask utilities, white-background composition, and
-directory-based image selection/saving.
+directory-based image saving.
 
 ## Install
 
@@ -91,8 +91,6 @@ filesystem paths:
 - `从原始路径加载图片` opens the browser file picker, uploads the selected image
   to ComfyUI's input directory, and loads it with a ComfyUI-style `[input]`
   path.
-- `目录图片选择加载器` opens a system directory picker, writes the selected real
-  filesystem path to the node, and refreshes the image list from that folder.
 - `保存图片到自定义目录` opens a system directory picker for the output folder.
 
 Image loading follows ComfyUI's built-in `LoadImage` behavior for EXIF
@@ -104,9 +102,9 @@ The input-image picker follows ComfyUI's built-in `LoadImage` pattern: the
 browser opens the native picker and uploads the selected file to the ComfyUI
 input directory.
 
-The input-directory and output-directory pickers ask the backend to choose a
-real filesystem folder. On Linux, that backend picker uses `zenity`; on macOS,
-it uses the native `osascript` folder chooser.
+The output-directory picker asks the backend to choose a real filesystem
+folder. On Linux, that backend picker uses `zenity`; on macOS, it uses the
+native `osascript` folder chooser.
 
 Output-directory picker dependency checks and install commands:
 
