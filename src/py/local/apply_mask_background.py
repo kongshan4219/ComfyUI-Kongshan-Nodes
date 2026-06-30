@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from PIL import Image
+
 from ._product_background_utils import (
     _apply_background,
+    _feather_mask,
     _image_tensor_to_uint8_rgb,
     _pil_to_tensor,
     _prepare_masks,
@@ -16,7 +19,7 @@ class KSApplyMaskBackground:
     def INPUT_TYPES(cls):
         return {
             "required": {
-                "image": ("IMAGE", {"tooltip": "原始图片。输出保持输入尺寸，只替换遮罩外区域。"}),
+                "image": ("IMAGE", {"tooltip": "原始图片或分割图片批次。输入为分割图片批次时，会按对应 mask 逐张合成到同一画布。"}),
                 "masks": ("MASK", {"tooltip": "一个或多个前景遮罩。多个遮罩会合并为一个 union mask。"}),
                 "background_mode": (
                     ["white", "transparent"],
@@ -79,6 +82,35 @@ class KSApplyMaskBackground:
             mask_expand_pixels,
             fill_mask_holes,
         )
+
+        if image.shape[0] == masks.shape[0] and image.shape[0] > 1:
+            source_array = _image_tensor_to_uint8_rgb(image[0])
+            height, width = source_array.shape[:2]
+            if background_mode == "transparent":
+                canvas = Image.new("RGBA", (width, height), (0, 0, 0, 0))
+                for index, processed_mask in enumerate(processed_masks):
+                    source = _image_tensor_to_uint8_rgb(image[index])
+                    mask = _union_masks([processed_mask], source.shape[:2])
+                    mask_image = _feather_mask(Image.fromarray(mask, mode="L"), edge_feather)
+                    layer = Image.fromarray(source, mode="RGB").convert("RGBA")
+                    layer.putalpha(mask_image)
+                    if source.shape[:2] != (height, width):
+                        layer = layer.resize((width, height), Image.Resampling.LANCZOS)
+                    canvas.alpha_composite(layer)
+                return (_pil_to_tensor(canvas),)
+
+            canvas = Image.new("RGB", (width, height), "white")
+            for index, processed_mask in enumerate(processed_masks):
+                source = _image_tensor_to_uint8_rgb(image[index])
+                mask = _union_masks([processed_mask], source.shape[:2])
+                mask_image = _feather_mask(Image.fromarray(mask, mode="L"), edge_feather)
+                layer = Image.fromarray(source, mode="RGB")
+                if source.shape[:2] != (height, width):
+                    layer = layer.resize((width, height), Image.Resampling.LANCZOS)
+                    mask_image = mask_image.resize((width, height), Image.Resampling.NEAREST)
+                canvas.paste(layer, (0, 0), mask_image)
+            return (_pil_to_tensor(canvas),)
+
         source_array = _image_tensor_to_uint8_rgb(image[0])
         union_mask = _union_masks(processed_masks, source_array.shape[:2])
         result = _apply_background(source_array, union_mask, background_mode, edge_feather)
