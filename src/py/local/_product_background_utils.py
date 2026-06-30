@@ -58,6 +58,113 @@ def _prepare_mask(
     return mask
 
 
+def _prepare_masks(
+    masks: torch.Tensor,
+    threshold: float,
+    min_component_area: int,
+    close_radius: int,
+    expand_pixels: int,
+    fill_holes: bool,
+) -> list[Image.Image]:
+    return [
+        _prepare_mask(
+            masks[index],
+            threshold,
+            min_component_area,
+            close_radius,
+            expand_pixels,
+            fill_holes,
+        )
+        for index in range(masks.shape[0])
+    ]
+
+
+def _image_tensor_to_uint8_rgb(image_tensor: torch.Tensor) -> np.ndarray:
+    array = np.clip(image_tensor.detach().cpu().numpy() * 255.0, 0, 255).astype(np.uint8)
+    if array.ndim == 2:
+        array = np.stack([array, array, array], axis=-1)
+    return array[..., :3]
+
+
+def _resize_mask_to_shape(mask: Image.Image | np.ndarray, shape: tuple[int, int]) -> np.ndarray:
+    mask_array = np.asarray(mask)
+    if mask_array.shape == shape:
+        return mask_array
+    return np.asarray(
+        Image.fromarray(mask_array, mode="L").resize(
+            (shape[1], shape[0]),
+            Image.Resampling.NEAREST,
+        )
+    )
+
+
+def _union_masks(masks: list[Image.Image], shape: tuple[int, int]) -> np.ndarray:
+    union_mask = np.zeros(shape, dtype=np.uint8)
+    for mask in masks:
+        union_mask = np.maximum(union_mask, _resize_mask_to_shape(mask, shape))
+    return union_mask
+
+
+def _feather_mask(mask: Image.Image, edge_feather: float) -> Image.Image:
+    if edge_feather > 0:
+        return mask.filter(ImageFilter.GaussianBlur(float(edge_feather)))
+    return mask
+
+
+def _apply_background(
+    source_array: np.ndarray,
+    mask: Image.Image | np.ndarray,
+    background_mode: str,
+    edge_feather: float = 0.0,
+) -> Image.Image:
+    source_rgb = source_array[..., :3]
+    full_mask = Image.fromarray(np.asarray(mask), mode="L")
+    full_mask = _feather_mask(full_mask, edge_feather)
+
+    if background_mode == "transparent":
+        result = Image.fromarray(source_rgb, mode="RGB").convert("RGBA")
+        result.putalpha(full_mask)
+        return result
+
+    canvas = Image.new("RGB", (source_rgb.shape[1], source_rgb.shape[0]), "white")
+    canvas.paste(Image.fromarray(source_rgb, mode="RGB"), (0, 0), full_mask)
+    return canvas
+
+
+def _pil_to_tensor(image: Image.Image) -> torch.Tensor:
+    return torch.from_numpy(np.asarray(image).astype(np.float32) / 255.0)[None,]
+
+
+def _collect_mask_instances(
+    processed_masks: list[Image.Image],
+    prefer_grouped_product_masks: bool,
+) -> list[dict[str, int]]:
+    redundant_mask_indices = (
+        _find_redundant_component_masks(processed_masks)
+        if prefer_grouped_product_masks
+        else set()
+    )
+
+    instances: list[dict[str, int]] = []
+    for index, processed_mask in enumerate(processed_masks):
+        if index in redundant_mask_indices:
+            continue
+        mask = np.asarray(processed_mask)
+        ys, xs = np.where(mask > 0)
+        if len(xs) == 0:
+            continue
+        instances.append(
+            {
+                "source_index": index,
+                "x1": int(xs.min()),
+                "y1": int(ys.min()),
+                "x2": int(xs.max()) + 1,
+                "y2": int(ys.max()) + 1,
+            }
+        )
+    return instances
+
+
 def _find_redundant_component_masks(masks: list[Image.Image]) -> set[int]:
     """Prefer a complete product mask over its separately detected components."""
     arrays = [np.asarray(mask) > 0 for mask in masks]

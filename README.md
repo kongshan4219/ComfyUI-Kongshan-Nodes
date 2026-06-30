@@ -3,7 +3,7 @@
 Kongshan Nodes is a ComfyUI custom-node package extracted from
 `kongshan_comfyui_workspace`. It provides nodes for product-image workflows,
 including Gemini/OpenRouter generation, local file IO, CLI execution, SAM,
-SAM-HQ, GroundingDINO, mask utilities, white-background composition, and
+SAM-HQ, GroundingDINO, mask utilities, white/transparent background composition, and
 directory-based image saving.
 
 ## Install
@@ -142,5 +142,5 @@ No extra package is usually required on macOS.
 - `Kongshan/CLI`: single-command Agent execution, including Antigravity/Codex
   style command runners.
 - `Kongshan/Local`: local image loading, directory IO, SAM/GroundingDINO
-  segmentation, masks, product crops, white-background composition, and
+  segmentation, masks, product crops, white/transparent background composition, and
   size-chart arrow drawing.

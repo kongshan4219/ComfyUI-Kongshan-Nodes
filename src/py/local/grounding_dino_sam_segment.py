@@ -8,7 +8,7 @@ from ._sam_grounding_dino_utils import groundingdino_predict, sam_segment
 
 
 class GroundingDinoSAMSegment:
-    DESCRIPTION = "一体化执行 GroundingDINO 检测和 SAM 分割，适合快速从文本 prompt 得到实例图片与遮罩。"
+    DESCRIPTION = "快捷组合节点：一体化执行 GroundingDINO 检测和 SAM 分割，适合快速从文本 prompt 得到实例图片与遮罩。"
 
     @classmethod
     def INPUT_TYPES(cls):
@@ -61,8 +61,9 @@ class GroundingDinoSAMSegment:
                 res_masks.extend(masks)
         if len(res_images) == 0:
             _, height, width, _ = image.size()
-            empty_mask = torch.zeros((1, height, width), dtype=torch.uint8, device="cpu")
-            return (empty_mask, empty_mask)
+            empty_image = torch.zeros((1, height, width, 3), dtype=image.dtype, device=image.device)
+            empty_mask = torch.zeros((1, height, width), dtype=torch.float32, device=image.device)
+            return (empty_image, empty_mask)
         return (torch.cat(res_images, dim=0), torch.cat(res_masks, dim=0))
 
 
