@@ -27,45 +27,6 @@ const addButton = (node, label, callback) => {
     return button;
 };
 
-const pickFiles = () =>
-    new Promise((resolve) => {
-        const input = document.createElement("input");
-        input.type = "file";
-        input.accept = "image/*";
-        input.style.display = "none";
-        input.addEventListener(
-            "change",
-            () => {
-                const files = Array.from(input.files || []);
-                input.remove();
-                resolve(files);
-            },
-            { once: true }
-        );
-        document.body.append(input);
-        input.click();
-    });
-
-const uploadImage = async (file, subfolder = "") => {
-    const body = new FormData();
-    body.append("image", file, file.name);
-    body.append("type", "input");
-    if (subfolder) body.append("subfolder", subfolder);
-
-    const response = await fetch("/upload/image", {
-        method: "POST",
-        body,
-    });
-    const payload = await response.json();
-    if (!response.ok) throw new Error(payload.error || "图片上传失败");
-    return payload;
-};
-
-const annotatedInputPath = ({ name, subfolder }) => {
-    const parts = [subfolder, name].filter(Boolean);
-    return `${parts.join("/")} [input]`;
-};
-
 app.registerExtension({
     name: "Kongshan.ProductSplit.DirectoryPicker",
     async beforeRegisterNodeDef(nodeType, nodeData) {
@@ -83,14 +44,21 @@ app.registerExtension({
                     if (!imagePathWidget) return;
 
                     try {
-                        const files = await pickFiles();
-                        const file = files[0];
-                        if (!file) return;
-                        const payload = await uploadImage(file, "kongshan_uploads");
-                        const path = annotatedInputPath(payload);
-                        imagePathWidget.value = path;
-                        imagePathWidget.callback?.(path);
-                        this.setDirtyCanvas(true, true);
+                        const response = await fetch("/ks-product-split/select-image-file", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({ initial_path: imagePathWidget.value || "" }),
+                        });
+                        const payload = await response.json();
+                        if (!response.ok) {
+                            app.ui.dialog.show(payload.error || "图片选择器启动失败");
+                            return;
+                        }
+                        if (!payload.cancelled && payload.path) {
+                            imagePathWidget.value = payload.path;
+                            imagePathWidget.callback?.(payload.path);
+                            this.setDirtyCanvas(true, true);
+                        }
                     } catch (error) {
                         app.ui.dialog.show(error.message || "图片选择器启动失败");
                     }
